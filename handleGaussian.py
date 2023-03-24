@@ -77,6 +77,7 @@ def extract_energy_frozen(filename, label_to_find):
 # ===========================================================================================
 def extract_opt_com(ifile):
 
+    # Find number of atoms and store the indices of "Standard Orientation"
     with open(ifile, 'r') as finp:
         lines = finp.readlines()
         size = []
@@ -88,27 +89,27 @@ def extract_opt_com(ifile):
             if iline.count("Standard orientation") != 0:
                 l_tmp.append(idx)
 
-    # print(ifile, l_tmp, l_tmp[-1])
-    # linea = (ifile, l_tmp, l_tmp[-1])
-    # print(linea)
+    # Read XYZ coordinates of the last structure
     linea5 = (l_tmp[-1] + 5)
     linea45 = (l_tmp[-1] + 5 + natoms)
-    # print(ifile)
-    # print("Number of atoms: {}".format(magn))
-    # print("StartMatrix: {}".format(linea5))
-    # print("EndMatrix: {}".format(linea45))
-    Matrix = list()
+    matrix = list()
     for iline in lines[linea5:linea45]:
 
         # natom = float(iline.split()[0])
         typeatom = float(iline.split()[1])
-        if typeatom == 1: typeatom = "H"
-        if typeatom == 6: typeatom = "C"
-        if typeatom == 8: typeatom = "O"
+        if typeatom == 1:
+            typeatom = "H"
+        elif typeatom == 6:
+            typeatom = "C"
+        elif typeatom == 8:
+            typeatom = "O"
+        else:
+            print("Error!. Atom unknown. Change the code in extract_opt_com function.!!!")
+            exit()
         xline = float(iline.split()[3])
         yline = float(iline.split()[4])
         zline = float(iline.split()[5])
-        Matrix.append([typeatom, xline, yline, zline])
+        matrix.append([typeatom, xline, yline, zline])
 
         # print(Matrix)
     # # with open(ifile+".com", 'w') as fout:
@@ -126,7 +127,7 @@ def extract_opt_com(ifile):
 
     with open(ifile_newname, 'w') as fout:
         fout.writelines(line)
-        for item in Matrix:
+        for item in matrix:
             linexyz = "{0:s} {1:f} {2:f} {3:f}\n".format(item[0], item[1], item[2], item[3])
             fout.writelines(linexyz)
         fout.writelines("\n")
@@ -274,14 +275,18 @@ def main_app(version):
     for irow, row in df.iterrows():
         df.loc[irow]['deltaE_kcalmol'] = (df.loc[irow]['Energy_Ha'] - minscf) * 627.5096
 
+    # Drop energy
     df.drop(df[df['deltaE_kcalmol'] >= args.dropenergy].index, inplace=True)
     try:
         plot_data(df)
     except AttributeError:
         pass
     print(df.sort_values(by=['deltaE_kcalmol']))
+
     generate_bashscript_send_slurm()
 
+
+    # Write panda in html
     dfhtml = df.to_html()
     if args.dir[-1] == "/":
         args.dir = args.dir[0:-1]
@@ -289,14 +294,6 @@ def main_app(version):
     with open(pattern + ".html", 'w') as fhtml:
         fhtml.writelines(dfhtml)
 
-
-    # df.drop(df[df['deltaE_kcalmol'] >= 9.0].index, inplace=True)
-    # # print(df.count(axis=0))
-    # # ifile = (df['deltaE_kcalmol']) >= 9.0
-    # plot_data(df)
-    # print(df.sort_values(by=['deltaE_kcalmol']))
-    # #df.to_excel('data12.xlsx')
-    # generate_bashscript_send_slurm()
 
 
 # =============================================================================
